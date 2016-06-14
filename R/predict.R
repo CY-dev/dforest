@@ -33,11 +33,11 @@ oob <- function(wo, fit) {
   list_splits <- fit$splits
   ntrees <- length(list_splits)  
   # push functions to workers
-  wrun(wo, bquote({
+  roctopus::wrun(wo, bquote({
     subsample_index <- .(subsample_index)
     oob_chunk <- .(oob_chunk)
   }))
-  errors <- wapply(wo, as.call(list(oob_chunk, ntrees, list_splits, sampRate, seed)))
+  errors <- roctopus::wapply(wo, as.call(list(oob_chunk, ntrees, list_splits, sampRate, seed)))
   #print(errors)
   # close connections to workers
   #for(o in wo) wclose(o)

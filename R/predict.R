@@ -37,7 +37,7 @@ oob <- function(wo, fit) {
     subsample_index <- .(subsample_index)
     oob_chunk <- .(oob_chunk)
   }))
-  errors <- roctopus::wapply(wo, as.call(list(oob_chunk, ntrees, list_splits, sampRate, seed)))
+  errors <- roctopus::wapply(wo, as.call(list(dforest::oob_chunk, ntrees, list_splits, sampRate, seed)))
   #print(errors)
   # close connections to workers
   #for(o in wo) wclose(o)

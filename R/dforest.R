@@ -71,11 +71,11 @@ combine_bins <- function(bins, list_bins, ncols, maxNumBins, discretized, ignore
 }
 
 dforest <- function(wo, ntrees, nvars, sampRate = 1, maxDepth = 5, minNodeSize = 1, 
-                        maxNumBins = 50, memory_limit = 4, seed=123)
+                    maxNumBins = 50, memory_limit = 4, seed=123)
 {
   set.seed(seed)
   # discretization
-  list_nlevs <- wqapply(wo, apply(chunk, 2, function(o) length(unique(o))))
+  list_nlevs <- roctopus::wqapply(wo, apply(chunk, 2, function(o) length(unique(o))))
   nchunks <- length(list_nlevs)
   max_nlevs <- do.call("pmax", list_nlevs)
   ncols <- length(max_nlevs)
@@ -87,14 +87,14 @@ dforest <- function(wo, ntrees, nvars, sampRate = 1, maxDepth = 5, minNodeSize =
   ignored <- logical(ncols)
   bins <- lapply(seq_len(ncols), function(o) NULL)
   # first pass based on max_nlevs
-  list_bins <- wapply(wo, as.call(list(get_bins, ncols, d1, ignored)))
+  list_bins <- roctopus::wapply(wo, as.call(list(get_bins, ncols, d1, ignored)))
   bins <- combine_bins(bins, list_bins, ncols, maxNumBins, d1, ignored)
   nlevs <- sapply(bins, length)
   # second pass based on nlevs to guarantee number of bins for each variable <= maxNumBins
   d2 <- (nlevs > maxNumBins)
   d2[1] <- FALSE # labels
   ignored[!d2] <- TRUE
-  list_bins <- wapply(wo, as.call(list(get_bins, ncols, d2, ignored)))
+  list_bins <- roctopus::wapply(wo, as.call(list(get_bins, ncols, d2, ignored)))
   bins <- combine_bins(bins, list_bins, ncols, maxNumBins, d2, ignored)
   nlevs <- sapply(bins, length)
   rm(list_bins)
@@ -117,7 +117,7 @@ dforest <- function(wo, ntrees, nvars, sampRate = 1, maxDepth = 5, minNodeSize =
                            else (v + tmp[-1])/2
                          })
   # push functions and constants to workers
-  wrun(wo, bquote({
+  roctopus::wrun(wo, bquote({
     subsample_index <- .(subsample_index)
     update_node_id <- .(update_node_id)
     ct_chunk <- .(ct_chunk)
@@ -146,7 +146,7 @@ dforest <- function(wo, ntrees, nvars, sampRate = 1, maxDepth = 5, minNodeSize =
   memory_limit <- memory_limit - memory_splits
   for (depth in seq_len(maxDepth)) {
     list_vars <- sample_vars(vind_nonconst, num_nonconst, ntrees, p, nvars, nleaves)
-    wapply(wo, as.call(list(update_node_id, nleaves_prev, list_splits, list_prev_leaves))) # update in-place
+    roctopus::wapply(wo, as.call(list(update_node_id, nleaves_prev, list_splits, list_prev_leaves))) # update in-place
     nleaves_max <- max(nleaves)
     memory_tabs <- 4*nlevs_max*nlabs*nvars*nleaves_max*ntrees*(nchunks+1)/(2^30)
     ngroups <- ceiling(memory_tabs/memory_limit)
@@ -163,12 +163,12 @@ dforest <- function(wo, ntrees, nvars, sampRate = 1, maxDepth = 5, minNodeSize =
       #print(list_vars)
       # update list_node_id in each chunk
       # distributed computation for contingency tables
-      list_tabs_chunk <- wapply(wo, as.call(list(ct_chunk, tree_begin, tree_end,
-                                           nleaves, list_leaves, list_vars)))
+      list_tabs_chunk <- roctopus::wapply(wo, as.call(list(ct_chunk, tree_begin, tree_end,
+                                                           nleaves, list_leaves, list_vars)))
       print(object.size(list_tabs_chunk), units = "GB")
       # sum up counts over all chunks
       list_tabs <- combine_ctabs(list_tabs_chunk, list_leaves, tree_begin, tree_end, 
-                                          nvars, nlabs, nleaves)
+                                 nvars, nlabs, nleaves)
       #rm(list_tabs_chunk)
       if (depth == 1) {
         for (j in tree_begin:tree_end) {
@@ -179,8 +179,8 @@ dforest <- function(wo, ntrees, nvars, sampRate = 1, maxDepth = 5, minNodeSize =
         }
       }
       newvals <- add_splits(list_splits, list_tabs, list_vars, list_prev_leaves, list_leaves, init_gini, 
-                                     labels, split_values, tree_begin, tree_end, ntrees, nvars, nlabs, nlevs, 
-                                     nleaves_prev, nleaves, minNodeSize, depth)
+                            labels, split_values, tree_begin, tree_end, ntrees, nvars, nlabs, nlevs, 
+                            nleaves_prev, nleaves, minNodeSize, depth)
       list_splits <- newvals[[1]]
       list_prev_leaves <- newvals[[2]]
       list_leaves <- newvals[[3]]

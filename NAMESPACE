@@ -1,0 +1,5 @@
+useDynLib(dforest, .registration=TRUE)
+import(iotools)
+import(hmr)
+import(roctopus)
+export(dforest, update_id, ctab_chunk, predict_tree, predict_chunk, oob)

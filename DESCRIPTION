@@ -1,0 +1,9 @@
+Package: dforest
+Type: Package
+Title: distributed random forest
+Version: 0.9-0
+Author: Congrui Yi
+Maintainer: Congrui Yi <congrui-yi@uiowa.edu>
+Description: Efficient distributed implementation of random forest based on roctopus.
+License: GPL-3
+NeedsCompilation: yes
